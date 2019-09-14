@@ -1,0 +1,21 @@
+image: elixir:1.8
+
+deploy:
+  stage: deploy
+  only:
+  - master
+  environment: production
+  before_script:
+    - 'which ssh-agent || ( apk update && apk add openssh-client )'
+    - eval $(ssh-agent)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - echo -e "StrictHostKeyChecking no" >> ~/.ssh/config
+    - chmod 700 ~/.ssh
+    - mix local.hex --force
+    - mix local.rebar --force
+    - mix deps.get --force
+  script:
+    - git branch -f master HEAD
+    - mix compile
+    - mix edeliver update production --start-deploy --verbose --auto-version=git-revision
